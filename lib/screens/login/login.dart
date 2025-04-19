@@ -1,5 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../../Utils/custom_dialog.dart';
+import '../../Utils/custom_snack_bar.dart';
 import '../../Utils/submit_buttom.dart';
 import '../../Utils/text_input.dart';
 import '../../service/auth_service.dart';
@@ -136,10 +138,10 @@ class _LoginState extends State<Login> {
                         child: Text(
                           (isRegister)
                               ? "Tem uma conta? Entre!"
-                              : "Ainda não tem conta? Cadastrar-se",
+                              : "Ainda não tem conta? Cadastrar-se!",
                           style: TextStyle(
                             color: Color(0xFF5D4037),
-                            fontSize: 16,
+                            fontSize: 17,
                             fontWeight: FontWeight.bold,
                             decoration: TextDecoration.underline,
                           ),
@@ -161,15 +163,36 @@ class _LoginState extends State<Login> {
       String name = _nameController.text;
       String email = _emailController.text;
       String password = _passwordController.text;
+      String confirmPassword = _confirmPasswordController.text;
 
       if (isRegister) {
+        if (password != confirmPassword) {
+          // Exibe mensagem se as senhas forem diferentes
+          showCustomSnackBar(
+            context,
+            'As senhas não coincidem. Por favor, verifique!',
+            backgroundColor: Colors.red,
+          );
+        } else if (password.length < 6) {
+          // Validação de senha com tamanho mínimo
+          showCustomSnackBar(
+            context,
+            'A senha deve ter pelo menos 6 caracteres.',
+            backgroundColor: Colors.red,
+          );
+        }
+
         _authService.registerUser(name: name, email: email, password: password);
       } else {
         _authService.getUser(email: email, password: password).then((value) {
           if (value != null) {
             print("${value.user?.displayName}");
 
-            Navigator.pushNamedAndRemoveUntil(context, "home", (route) => false);
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              "home",
+              (route) => false,
+            );
           }
         });
       }
