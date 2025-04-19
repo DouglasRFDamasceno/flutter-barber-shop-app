@@ -1,5 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../../Utils/submit_buttom.dart';
 import '../../Utils/text_input.dart';
+import '../../service/auth_service.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -9,12 +12,16 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
+  AuthService _authService = AuthService();
+
   bool isRegister = false;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
+
+  final _formKey = GlobalKey<FormState>();
 
   @override
   Widget build(BuildContext context) {
@@ -26,14 +33,12 @@ class _LoginState extends State<Login> {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFF8D6E63),
-                  Color(0xFFD7A86E),
-                ],
+                colors: [Color(0xFF8D6E63), Color(0xFFD7A86E)],
               ),
             ),
           ),
           Form(
+            key: _formKey,
             child: Center(
               child: SingleChildScrollView(
                 child: Padding(
@@ -117,28 +122,9 @@ class _LoginState extends State<Login> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      ElevatedButton(
-                        onPressed: () {},
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6D4C41),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 32,
-                            vertical: 16,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 5,
-                          shadowColor: Colors.black,
-                        ),
-                        child: Text(
-                          (isRegister) ? "Cadastrar" : "Entrar",
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFFFFF3E0),
-                          ),
-                        ),
+                      SubmitButtom(
+                        onPressed: Submit,
+                        text: (isRegister) ? "Cadastrar" : "Entrar",
                       ),
                       const SizedBox(height: 10),
                       TextButton(
@@ -155,7 +141,7 @@ class _LoginState extends State<Login> {
                             color: Color(0xFF5D4037),
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            decoration: TextDecoration.underline
+                            decoration: TextDecoration.underline,
                           ),
                         ),
                       ),
@@ -168,5 +154,27 @@ class _LoginState extends State<Login> {
         ],
       ),
     );
+  }
+
+  Submit() {
+    if (_formKey.currentState!.validate()) {
+      String name = _nameController.text;
+      String email = _emailController.text;
+      String password = _passwordController.text;
+
+      if (isRegister) {
+        _authService.registerUser(name: name, email: email, password: password);
+      } else {
+        _authService.getUser(email: email, password: password).then((value) {
+          if (value != null) {
+            print("${value.user?.displayName}");
+
+            Navigator.pushNamedAndRemoveUntil(context, "home", (route) => false);
+          }
+        });
+      }
+    } else {
+      print("Formulário inválido!");
+    }
   }
 }

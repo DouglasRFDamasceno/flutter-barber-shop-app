@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'colors.dart';
+
 class TextInput extends StatefulWidget {
   final String label;
   final String? hintText;
@@ -53,7 +55,15 @@ class _TextInputState extends State<TextInput> {
           vertical: 16.0,
           horizontal: 12.0,
         ),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20.0)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20.0),
+          borderSide: const BorderSide(color: Colors.black, width: 2),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20.0),
+          borderSide: BorderSide(color: customBrown, width: 4),
+        ),
         suffixIcon:
             widget.showPasswordIcon
                 ? IconButton(
