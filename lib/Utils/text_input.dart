@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart'; // Importando o pacote de máscara
 
 import 'colors.dart';
 
@@ -8,17 +10,21 @@ class TextInput extends StatefulWidget {
   final TextEditingController controller;
   final String? Function(String?)? validator;
   final bool obscureText;
+  final bool enabled;
   final bool showPasswordIcon;
+  final TextInputFormatter? inputFormatter;  // Adicionando o campo para formatação de input
 
   const TextInput({
-    Key? key,
+    super.key,
     required this.label,
     required this.controller,
     this.validator,
     this.hintText,
     this.obscureText = false,
+    this.enabled = true,
     this.showPasswordIcon = false,
-  }) : super(key: key);
+    this.inputFormatter,
+  });
 
   @override
   State<TextInput> createState() => _TextInputState();
@@ -49,6 +55,7 @@ class _TextInputState extends State<TextInput> {
       decoration: InputDecoration(
         labelText: widget.label,
         hintText: widget.hintText,
+        enabled: widget.enabled,
         filled: true,
         fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(
@@ -62,18 +69,21 @@ class _TextInputState extends State<TextInput> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20.0),
-          borderSide: BorderSide(color: customBrown, width: 4),
+          borderSide: BorderSide(color: RetroColors.brown.shade500, width: 4),
         ),
         suffixIcon:
-            widget.showPasswordIcon
-                ? IconButton(
-                  icon: Icon(
-                    _obscureText ? Icons.visibility_off : Icons.visibility,
-                  ),
-                  onPressed: _togglePasswordVisibility,
-                )
-                : null,
+        widget.showPasswordIcon
+            ? IconButton(
+          icon: Icon(
+            _obscureText ? Icons.visibility_off : Icons.visibility,
+          ),
+          onPressed: _togglePasswordVisibility,
+        )
+            : null,
       ),
+      inputFormatters: widget.inputFormatter != null
+          ? [widget.inputFormatter!]  // Aplica o inputFormatter caso exista
+          : [],
     );
   }
 }
