@@ -37,10 +37,10 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       darkTheme: ThemeData.dark(),
       themeMode: ThemeMode.light,
-      initialRoute: "login",
+      initialRoute: "/login",
       routes: {
-        "login": (context) => const Login(),
-        "home": (context) => const Home(),
+        "/login": (context) => const Login(),
+        "/home": (context) => const Home(),
       },
     );
   }

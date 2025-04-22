@@ -1,6 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
-import '../../Utils/custom_dialog.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import '../../Utils/colors.dart';
 import '../../Utils/custom_snack_bar.dart';
 import '../../Utils/submit_buttom.dart';
 import '../../Utils/text_input.dart';
@@ -16,12 +19,21 @@ class Login extends StatefulWidget {
 class _LoginState extends State<Login> {
   AuthService _authService = AuthService();
 
+  void initState() {
+    super.initState();
+    _loadLoginPreferences();
+  }
+
   bool isRegister = false;
+  bool rememberMe = false;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
+
+  File? _userImage;
+  final ImagePicker _picker = ImagePicker();
 
   final _formKey = GlobalKey<FormState>();
 
@@ -58,6 +70,26 @@ class _LoginState extends State<Login> {
                         visible: isRegister,
                         child: Column(
                           children: [
+                            GestureDetector(
+                              onTap: _pickImage,
+                              child: CircleAvatar(
+                                radius: 50,
+                                backgroundColor: Colors.grey[300],
+                                backgroundImage:
+                                    _userImage != null
+                                        ? FileImage(_userImage!)
+                                        : null,
+                                child:
+                                    _userImage == null
+                                        ? Icon(
+                                          Icons.camera_alt,
+                                          size: 40,
+                                          color: Colors.grey[700],
+                                        )
+                                        : null,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
                             TextInput(
                               label: "Nome",
                               hintText: "Digite seu nome",
@@ -123,7 +155,37 @@ class _LoginState extends State<Login> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Checkbox(
+                                value: rememberMe,
+                                onChanged: (bool? value) {
+                                  setState(() {
+                                    rememberMe = value ?? false;
+                                  });
+                                },
+                                visualDensity: const VisualDensity(horizontal: -4.0, vertical: -4.0),
+                              ),
+                              const Text(
+                                "Lembrar e-mail",
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ],
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              _showForgotPasswordDialog(context);
+                            },
+                            child: const Text(
+                              "Esqueceu a senha?",
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ],
+                      ),
                       SubmitButtom(
                         onPressed: Submit,
                         text: (isRegister) ? "Cadastrar" : "Entrar",
@@ -171,33 +233,143 @@ class _LoginState extends State<Login> {
           showCustomSnackBar(
             context,
             'As senhas não coincidem. Por favor, verifique!',
-            backgroundColor: Colors.red,
+            backgroundColor: RetroColors.red.shade500,
           );
+
+          return;
         } else if (password.length < 6) {
           // Validação de senha com tamanho mínimo
           showCustomSnackBar(
             context,
             'A senha deve ter pelo menos 6 caracteres.',
-            backgroundColor: Colors.red,
+            backgroundColor: RetroColors.red.shade500,
           );
+
+          return;
         }
 
-        _authService.registerUser(name: name, email: email, password: password);
+        _authService.registerUser(
+          name: name,
+          email: email,
+          password: password,
+          imageFile: _userImage,
+        );
+
+        showCustomSnackBar(
+          context,
+          'Usuário cadastrado com sucesso. Realize o Login.',
+          backgroundColor: RetroColors.blue.shade500,
+        );
+
+        Navigator.pushNamedAndRemoveUntil(context, "/login", (route) => false);
       } else {
-        _authService.getUser(email: email, password: password).then((value) {
+        _authService.getUser(email: email, password: password).then((
+          value,
+        ) async {
           if (value != null) {
-            print("${value.user?.displayName}");
+            SharedPreferences prefs = await SharedPreferences.getInstance();
+
+            // Salva o e-mail no dispositivo caso o usuário queira
+            if (rememberMe) {
+              await prefs.setString('saved_email', email);
+              await prefs.setBool('remember_me', true);
+            } else {
+              await prefs.remove('saved_email');
+              await prefs.setBool('remember_me', false);
+            }
 
             Navigator.pushNamedAndRemoveUntil(
               context,
-              "home",
+              "/home",
               (route) => false,
+            );
+          } else {
+            showCustomSnackBar(
+              context,
+              'Usuário não encontrado!',
+              backgroundColor: RetroColors.red.shade500,
             );
           }
         });
       }
     } else {
-      print("Formulário inválido!");
+      showCustomSnackBar(
+        context,
+        'Erro inesperado!',
+        backgroundColor: RetroColors.red.shade500,
+      );
     }
+  }
+
+  void _loadLoginPreferences() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? savedEmail = prefs.getString('saved_email');
+    bool? savedRememberMe = prefs.getBool('remember_me');
+
+    if (savedEmail != null && savedRememberMe == true) {
+      _emailController.text = savedEmail;
+      setState(() {
+        rememberMe = true;
+      });
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _userImage = File(pickedFile.path);
+      });
+    }
+  }
+
+  void _showForgotPasswordDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Redefinir senha"),
+          content: TextField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(
+              labelText: "Digite seu e-mail",
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("Cancelar"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final email = _emailController.text.trim();
+                if (email.isNotEmpty) {
+                  try {
+                    await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("E-mail de redefinição enviado!"),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  } catch (e) {
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("Erro: ${e.toString()}"),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text("Enviar"),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

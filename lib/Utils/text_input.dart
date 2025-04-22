@@ -62,7 +62,7 @@ class _TextInputState extends State<TextInput> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20.0),
-          borderSide: BorderSide(color: customBrown, width: 4),
+          borderSide: BorderSide(color: RetroColors.brown.shade500, width: 4),
         ),
         suffixIcon:
             widget.showPasswordIcon
